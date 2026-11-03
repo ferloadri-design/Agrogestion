@@ -245,6 +245,7 @@ function downloadBackup(){
  const payload={created_at:new Date().toISOString(),organization:orgRow,receipts:data.entradas,contacts:data.contactos,processes:data.procesos,purchases:data.compras,sales:data.ventas,transports:data.transportes,seed_lots:data.seedLots,seed_dispatches:data.seedSales,invoices:data.facturas,payments:data.cobros,inventory_movements:data.stockLedger,warehouses:data.warehouses,products:data.products};
  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='AgroGestion-copia-'+dateLocal()+'.json';a.click();URL.revokeObjectURL(a.href);toast('Copia descargada en este dispositivo.');
 }
+window.downloadBackup=downloadBackup;
 function renderLedger(){
  if(!$id('stockRows'))return;
  const groups=new Map();
