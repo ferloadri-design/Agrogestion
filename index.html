@@ -3,6 +3,50 @@
 :root{--g:#173d2b;--g2:#286344;--bg:#f4f6f3;--card:#fff;--ink:#202b24;--muted:#778279;--line:#e5eae5;--gold:#caa45b;--red:#a84a3d}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px Inter,system-ui,-apple-system,Segoe UI,sans-serif}.app{display:flex;min-height:100vh}.side{width:248px;background:var(--g);color:white;padding:22px 14px;display:flex;flex-direction:column;flex-shrink:0}.brand{font-size:22px;font-weight:850;letter-spacing:-.7px;padding:0 12px 6px}.brand em{color:#e4bd70;font-style:normal}.tag{font-size:9px;letter-spacing:1.7px;color:#aac0b1;padding:0 13px 26px;text-transform:uppercase}.navlabel{font-size:9px;color:#8fa998;letter-spacing:1.4px;padding:12px 12px 6px}.nav button{width:100%;border:0;background:none;color:#d9e5dc;text-align:left;padding:10px 12px;border-radius:8px;margin:2px 0;font-size:12px;cursor:pointer}.nav button.active,.nav button:hover{background:#2b5a40;color:white}.nav .ico{display:inline-block;width:26px;color:#c8d9cc;font-size:14px}.foot{margin-top:auto;border-top:1px solid #ffffff22;padding:14px 12px;color:#b6c8bb;font-size:10px;line-height:1.6}.main{flex:1;min-width:0}.top{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px}.crumb{color:var(--muted);font-size:11px}.user{display:flex;align-items:center;gap:9px;font-size:11px}.avatar{background:#e6eee7;color:var(--g);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-weight:800}.content{padding:26px 28px;max-width:1500px;margin:auto}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}.heading h1{margin:0 0 5px;font-size:24px;letter-spacing:-.7px}.heading p{margin:0;color:var(--muted);font-size:12px}.btn{background:var(--g2);color:white;border:0;border-radius:7px;padding:10px 14px;font-weight:650;font-size:12px;cursor:pointer}.btn:hover{background:var(--g)}.btn.light{background:#edf3ee;color:var(--g)}.btn.danger{background:#faeeec;color:var(--red)}.btn.small{padding:7px 10px;font-size:11px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:17px}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:17px}.statlabel{color:var(--muted);font-size:11px}.statval{font-size:24px;font-weight:800;margin:9px 0 3px;letter-spacing:-.6px}.statnote{color:#89938c;font-size:10px}.layout{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}.card h3{font-size:13px;margin:0 0 14px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th{text-align:left;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;padding:10px 8px;border-bottom:1px solid var(--line)}td{padding:11px 8px;border-bottom:1px solid #eef1ed;font-size:11px}tr:last-child td{border:0}.pill{background:#edf4ee;color:#316044;border-radius:20px;padding:4px 8px;font-size:9px}.muted{color:var(--muted)}.quick{display:grid;grid-template-columns:1fr 1fr;gap:9px}.quick button{background:#f8faf8;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:left;color:var(--ink);cursor:pointer}.quick b{display:block;margin-bottom:4px;font-size:11px}.quick span{font-size:10px;color:var(--muted)}.notice{background:#fff8e8;border:1px solid #f0dfb8;color:#725923;border-radius:8px;padding:11px 13px;font-size:10px;line-height:1.5;margin-top:13px}.view{display:none}.view.active{display:block}.formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid #dce4dc;border-radius:7px;background:#fff;font:inherit;font-size:12px;color:var(--ink)}.field.full{grid-column:1/-1}.actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.toolbar input,.toolbar select{padding:9px;border:1px solid var(--line);border-radius:7px;background:white;font-size:11px}.empty{text-align:center;padding:25px;color:var(--muted);font-size:11px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.total{font-size:20px;font-weight:800;text-align:right}.invoice-paper{background:#fff;max-width:800px;margin:0 auto;padding:35px;border:1px solid var(--line);color:#222}.invoice-paper h2{margin:0 0 5px}.invoice-paper table{margin-top:25px}.invoice-paper td,.invoice-paper th{font-size:12px;padding:12px}.mobilehead{display:none}
 @media(max-width:900px){.side{width:68px;padding:18px 7px}.brand{font-size:0;padding:0 9px 25px}.brand:first-letter{font-size:22px}.tag,.navlabel{display:none}.nav button{font-size:0;text-align:center;padding:12px 3px}.nav .ico{font-size:16px;width:auto}.foot{font-size:0;padding:8px 2px}.top{padding:0 16px}.content{padding:20px 16px}.stats{grid-template-columns:repeat(2,1fr)}.layout,.two{grid-template-columns:1fr}}@media(max-width:540px){.side{display:none}.mobilehead{display:flex;background:var(--g);color:white;padding:12px 16px;justify-content:space-between;font-weight:800}.content{padding:16px 12px}.heading h1{font-size:20px}.formgrid{grid-template-columns:1fr 1fr}.field.full{grid-column:1/-1}.user .role{display:none}.invoice-paper{padding:16px}}
 @media print{body{background:white}.side,.top,.mobilehead,.heading,.no-print{display:none!important}.main,.content,.view{display:block!important;padding:0!important}.view:not(#facturaVista){display:none!important}.invoice-paper{border:0;padding:0;max-width:none}.invoice-paper .no-print{display:none!important}}
+
+/* AgroGestión UI refresh */
+:root{--g:#172b25;--g2:#245b42;--bg:#f2f5f3;--ink:#1d2923;--muted:#75827a;--line:#e2e9e4;--shadow:0 5px 18px rgba(24,45,33,.045)}
+body{background:#f2f5f3;color:#1d2923;font-size:13px}
+.side{width:258px;background:linear-gradient(180deg,#172b25,#1d382c);padding:24px 15px 16px;box-shadow:5px 0 22px rgba(18,39,29,.07)}
+.brand{font-size:23px;letter-spacing:-1px;padding:2px 13px 5px}
+.navlabel{font-weight:800;letter-spacing:1.5px;color:#91ad9b;padding:15px 13px 7px}
+.nav button{font-size:12px;font-weight:550;padding:11px 13px;border-radius:8px}
+.nav button.active{background:#35694c;box-shadow:inset 3px 0 #e0bd78}
+.nav .ico{width:28px;font-size:15px}
+.top{height:68px;padding:0 32px;position:sticky;top:0;z-index:5;box-shadow:0 1px 0 var(--line)}
+.content{padding:29px 32px;max-width:1640px}
+.heading{margin-bottom:22px}.heading h1{font-size:25px;font-weight:780;color:#1b2d23}
+.btn{background:#286344;border-radius:7px;padding:10px 15px;font-size:11px;transition:transform .12s}
+.btn:hover{background:#194b32;transform:translateY(-1px)}
+.btn.light{background:#edf3ee;color:#28583d;border:1px solid #dce8de}
+.card{border:1px solid #e3eae5;border-radius:11px;padding:19px;box-shadow:var(--shadow)}
+.card h3{font-weight:750;color:#2a3a30}
+.stats{gap:14px;margin-bottom:18px}
+.statlabel{font-size:10px;font-weight:650;text-transform:uppercase;letter-spacing:.65px}
+.statval{font-size:27px;color:#1d3b2b;font-variant-numeric:tabular-nums}
+th{background:#f7f9f7;color:#78867d;letter-spacing:.75px;padding:12px 10px}
+td{padding:12px 10px}tbody tr:hover{background:#f8fbf8}
+.quick button{padding:14px;border-radius:9px;background:#fbfcfb}
+.quick b{color:#294333}
+.field label{font-weight:650;color:#65746a}
+.field input,.field select,.field textarea,.toolbar input,.toolbar select{border:1px solid #dce5de;border-radius:7px;padding:10px 11px}
+.field input:focus,.field select:focus,.field textarea:focus,.toolbar input:focus,.toolbar select:focus{outline:none;border-color:#6b9b79;box-shadow:0 0 0 3px #dcecdf}
+.view>.card+.card{margin-top:15px}
+@media(max-width:900px){.side{width:218px;padding:18px 10px}.brand{font-size:20px}.tag,.navlabel{display:block}.nav button{font-size:11px;text-align:left;padding:10px 9px}.nav .ico{font-size:14px;width:24px}.content{padding:22px 18px}}
+@media(max-width:640px){
+.app{display:flex;flex-direction:column}
+.mobilehead{display:flex;position:sticky;top:0;z-index:10;padding:13px 16px;align-items:center;box-shadow:0 2px 8px #102b1d20}
+.side{display:flex;width:100%;padding:8px 10px;overflow-x:auto;position:sticky;top:46px;z-index:9}
+.brand,.tag,.foot,.navlabel{display:none}
+.nav{display:flex;gap:5px;min-width:max-content}
+.nav button{width:auto;white-space:nowrap;margin:0;padding:9px 11px;font-size:10px}
+.nav .ico{font-size:12px;width:auto;margin-right:5px}
+.top{height:52px;padding:0 14px;position:static}
+.content{padding:17px 12px}.heading h1{font-size:20px}
+.stats{gap:9px}.card{padding:14px}.statval{font-size:22px}
+.formgrid{grid-template-columns:1fr 1fr;gap:10px}.layout,.two{grid-template-columns:1fr}
+}
+@media(max-width:380px){.formgrid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
 </style></head><body><div class="mobilehead"><span>Agro<em style="color:#e4bd70">Gestión</em></span><span>ALMACÉN</span></div><div class="app">
 <aside class="side"><div class="brand">Agro<em>Gestión</em></div><div class="tag">Gestión integral agrícola</div><nav class="nav">
 <div class="navlabel">GENERAL</div><button class="active" data-view="inicio"><span class="ico">▦</span>Panel de control</button><button data-view="entradas"><span class="ico">⇩</span>Recepción y báscula</button><button data-view="stock"><span class="ico">▤</span>Existencias y lotes</button>
