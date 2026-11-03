@@ -162,8 +162,8 @@ if(data.config.nombre){let c=data.config;Object.entries({cfgNombre:'nombre',cfgN
 'use strict';
 const SB_URL='https://qmmgkofsifirsurpvfmy.supabase.co';
 const SB_KEY='sb_publishable_I7iHjqefMIpjv-J0OQetpA_pucfN5Is';
-const sb=window.supabase.createClient(SB_URL,SB_KEY);
-let currentUser=null,orgId=null,orgRow=null,userRole='worker',liveChannel=null;
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+let currentUser={id:null,email:'Acceso mediante enlace'},orgId='7a0f2c3d-9b41-4e72-8a16-5f0d9c2b7e31',orgRow=null,userRole='admin',liveChannel=null;
 const $id=id=>document.getElementById(id);
 const dateLocal=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date());
 function toast(message,bad=false){
@@ -220,7 +220,7 @@ async function loadCloudData(showMsg=false){
  if(showMsg)toast('Datos sincronizados con el almacén.');
 }
 async function cloudInsert(table,row){
- const {error}=await sb.from(table).insert({...row,organization_id:orgId,created_by:currentUser.id});
+ const {error}=await sb.from(table).insert({...row,organization_id:orgId});
  if(error)throw error;
  await loadCloudData();
 }
@@ -229,9 +229,9 @@ function ownerContact(name){const c=byName(name);if(!c||c.tipo!=='Agricultor')th
 function resetDates(ids){ids.forEach(id=>{if($id(id))$id(id).value=dateLocal();});}
 function setTopBar(){
  const u=document.querySelector('.user');
- if(u)u.innerHTML='<div class="avatar">'+(currentUser.email||'AG').slice(0,2).toUpperCase()+'</div><span>'+((data.profileName||currentUser.email)||'Usuario')+'<br><span class="muted role">'+(userRole==='admin'?'Administrador':userRole==='manager'?'Encargado':'Trabajador')+'</span></span><button class="agro-smallbtn" id="agRefresh">↻</button><button class="agro-smallbtn" id="agLogout">Salir</button>';
+ if(u)u.innerHTML='<div class="avatar">AG</div><span>Acceso directo<br><span class="muted role">Almacén privado por enlace</span></span><button class="agro-smallbtn" id="agRefresh">↻</button>';
  if($id('agRefresh'))$id('agRefresh').onclick=()=>loadCloudData(true).catch(e=>toast(e.message,true));
- if($id('agLogout'))$id('agLogout').onclick=async()=>{if(liveChannel)await sb.removeChannel(liveChannel);await sb.auth.signOut();location.reload();};
+ 
 }
 
 function updateCatalogOptions(){
@@ -261,21 +261,16 @@ function renderLedger(){
 const originalRender=render;
 render=function(){originalRender();renderLedger();};
 function fail(err){toast(err?.message||'No se ha podido guardar el registro.',true);}
-async function startApp(user){
- currentUser=user;
- const {data:mems,error:me}=await sb.from('memberships').select('organization_id,role').eq('user_id',user.id).eq('active',true);
- if(me)throw me;
- if(!mems||!mems.length)throw new Error('Tu usuario todavía no pertenece a ningún almacén. Pide al administrador que te envíe una invitación.');
- orgId=mems[0].organization_id;userRole=mems[0].role;
- const {data:org,error:oe}=await sb.from('organizations').select('*').eq('id',orgId).single();
- if(oe)throw oe;orgRow=org;
- const {data:profile}=await sb.from('profiles').select('full_name').eq('user_id',user.id).maybeSingle();
- data.profileName=profile?.full_name||'';
+async function startApp(){
+ const {data:org,error}=await sb.from('organizations').select('*').eq('id',orgId).single();
+ if(error)throw error;orgRow=org;
  await loadCloudData();
  const overlay=$id('agroAuth');if(overlay)overlay.remove();
  setTopBar();
  if(liveChannel)await sb.removeChannel(liveChannel);
- liveChannel=sb.channel('agrogestion-'+orgId);['receipts','contacts','sales','processes','purchases','transports','seed_lots','seed_dispatches','invoices','payments','inventory_movements','warehouses','products'].forEach(table=>{liveChannel=liveChannel.on('postgres_changes',{event:'*',schema:'public',table,filter:'organization_id=eq.'+orgId},()=>loadCloudData());});liveChannel.subscribe();
+ liveChannel=sb.channel('agrogestion-link-'+orgId);
+ ['receipts','contacts','sales','processes','purchases','transports','seed_lots','seed_dispatches','invoices','payments','inventory_movements','warehouses','products'].forEach(table=>{liveChannel=liveChannel.on('postgres_changes',{event:'*',schema:'public',table,filter:'organization_id=eq.'+orgId},()=>loadCloudData());});
+ liveChannel.subscribe();
  show('inicio');
 }
 function installForms(){
@@ -289,7 +284,7 @@ function installForms(){
  $id('fSeedSale').onsubmit=async e=>{e.preventDefault();const lot=data.seedLots.find(x=>x.id===val('ssLote'));if(!lot)return toast('Selecciona un lote de semillas.',true);try{await cloudInsert('seed_dispatches',{dispatch_date:val('ssFecha'),seed_lot_id:lot.dbId,lot_code:lot.id,customer_name:val('ssCliente'),quantity_kg:num('ssKilos'),price_per_kg:num('ssPrecio'),delivery_note:val('ssAlbaran'),format:val('ssFormato'),transport:val('ssTransporte'),notes:val('ssObs')});e.target.reset();resetDates(['ssFecha']);toast('Salida de semillas guardada y stock descontado.');}catch(err){fail(err);}};
  $id('fConfig').onsubmit=async e=>{e.preventDefault();const cityValue=val('cfgLocal').trim();const {error}=await sb.from('organizations').update({name:val('cfgNombre'),cif:val('cfgNif'),email:val('cfgEmail'),phone:val('cfgTel'),address:val('cfgDir'),city:cityValue,invoice_series:val('cfgSerie')||'F',default_vat:num('cfgIva'),campaign:val('cfgCamp')}).eq('id',orgId);if(error)return fail(error);const {data:org,error:er}=await sb.from('organizations').select('*').eq('id',orgId).single();if(er)return fail(er);orgRow=org;data.config={nombre:org.name,nif:org.cif,email:org.email,tel:org.phone,dir:org.address,local:org.city,serie:org.invoice_series,iva:Number(org.default_vat),camp:org.campaign};toast('Configuración sincronizada con la base de datos.');};
  $id('fCobro').onsubmit=async e=>{e.preventDefault();const inv=data.facturas.find(x=>x.numero===val('cFactura'));if(!inv)return toast('Selecciona una factura.',true);const remaining=inv.total-inv.pagado;if(num('cImporte')>remaining+0.001)return toast('El importe supera el saldo pendiente: '+money(remaining),true);try{await cloudInsert('payments',{invoice_id:inv.id,payment_date:val('cFecha'),amount:num('cImporte'),method:val('cForma')});e.target.reset();resetDates(['cFecha']);toast('Cobro guardado y saldo actualizado.');}catch(err){fail(err);}};
- $id('fInvite').onsubmit=async e=>{e.preventDefault();if(!['admin','manager'].includes(userRole))return toast('No tienes permisos para invitar usuarios.',true);try{const {data:invite,error}=await sb.from('org_invites').insert({organization_id:orgId,email:val('invEmail').trim().toLowerCase(),role:val('invRole'),created_by:currentUser.id}).select('token').single();if(error)throw error;const link=location.origin+'/?invite='+invite.token;const out=$id('inviteResult');out.style.display='block';out.textContent='Invitación creada para '+val('invEmail')+'. Enlace: '+link;try{await navigator.clipboard.writeText(link);toast('Invitación creada. Enlace copiado para compartir.');}catch{toast('Invitación creada. Copia el enlace mostrado.');}e.target.reset();}catch(err){fail(err);}};
+ $id('fInvite').onsubmit=async e=>{e.preventDefault();return toast('Esta versión se ha configurado para acceso directo mediante enlace.');try{const {data:invite,error}=await sb.from('org_invites').insert({organization_id:orgId,email:val('invEmail').trim().toLowerCase(),role:val('invRole'),created_by:currentUser.id}).select('token').single();if(error)throw error;const link=location.origin+'/?invite='+invite.token;const out=$id('inviteResult');out.style.display='block';out.textContent='Invitación creada para '+val('invEmail')+'. Enlace: '+link;try{await navigator.clipboard.writeText(link);toast('Invitación creada. Enlace copiado para compartir.');}catch{toast('Invitación creada. Copia el enlace mostrado.');}e.target.reset();}catch(err){fail(err);}};
  $id('fWarehouse').onsubmit=async e=>{e.preventDefault();try{const {error}=await sb.from('warehouses').insert({organization_id:orgId,name:val('whName').trim(),location:val('whLocation')});if(error)throw error;e.target.reset();await loadCloudData();toast('Almacén añadido.');}catch(err){fail(err);}};
  $id('fProduct').onsubmit=async e=>{e.preventDefault();try{const {error}=await sb.from('products').insert({organization_id:orgId,name:val('prodName').trim(),category:val('prodCategory')});if(error)throw error;e.target.reset();await loadCloudData();toast('Producto añadido.');}catch(err){fail(err);}};
 }
@@ -304,12 +299,11 @@ nuevaFactura=async function(){
  try{await cloudInsert('invoices',{invoice_number:numero,issue_date:dateLocal(),customer_name:cliente,customer_nif:nif,customer_email:con?.email||'',concept:concepto,quantity:cantidad,unit_price:precio,base_amount:base,vat_rate:iva,vat_amount:impuesto,total_amount:Number((base+impuesto).toFixed(2)),status:'draft'});verFactura(numero);}catch(err){fail(err);}
 };
 async function boot(){
- const {data:{session},error}=await sb.auth.getSession();if(error){authScreen(error.message);return;}
- if(session?.user){try{await startApp(session.user);}catch(err){authScreen(err.message||'Error cargando el almacén.');}}else authScreen();
+ try{await startApp();}catch(err){document.body.innerHTML='<div style="padding:30px;font-family:system-ui"><h2>No se pudo abrir AgroGestión</h2><p>'+esc(err.message||'Error de conexión')+'</p><button onclick="location.reload()">Reintentar</button></div>';}
 }
 installForms();
 const originalOnInput=$id('buscarStock').oninput;$id('buscarStock').oninput=()=>{renderLedger();};
-boot().catch(err=>authScreen(err.message));
+boot().catch(err=>{document.body.innerHTML='<div style="padding:30px">Error de conexión. Recarga la página.</div>';});
 })();
 </script>
 </body></html>
