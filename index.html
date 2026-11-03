@@ -185,7 +185,7 @@ if(data.config.nombre){let c=data.config;Object.entries({cfgNombre:'nombre',cfgN
 'use strict';
 const SB_URL='https://qmmgkofsifirsurpvfmy.supabase.co';
 const SB_KEY='sb_publishable_I7iHjqefMIpjv-J0OQetpA_pucfN5Is';
-const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let currentUser={id:null,email:'Acceso mediante enlace'},orgId='7a0f2c3d-9b41-4e72-8a16-5f0d9c2b7e31',orgRow=null,userRole='admin',liveChannel=null;
 const $id=id=>document.getElementById(id);
 const dateLocal=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid'}).format(new Date());
@@ -254,8 +254,9 @@ function ownerContact(name){const c=byName(name);if(!c||c.tipo!=='Agricultor')th
 function resetDates(ids){ids.forEach(id=>{if($id(id))$id(id).value=dateLocal();});}
 function setTopBar(){
  const u=document.querySelector('.user');
- if(u)u.innerHTML='<div class="avatar">AG</div><span>Acceso directo<br><span class="muted role">Almacén privado por enlace</span></span><button class="agro-smallbtn" id="agRefresh">↻</button>';
+ if(u)u.innerHTML='<div class="avatar">AG</div><span>'+esc(currentUser.email||'Usuario')+'<br><span class="muted role">'+esc(userRole==='admin'?'Administrador':userRole==='manager'?'Encargado':'Trabajador')+'</span></span><button class="agro-smallbtn" id="agRefresh">↻</button><button class="agro-smallbtn" id="agLogout">Salir</button>';
  if($id('agRefresh'))$id('agRefresh').onclick=()=>loadCloudData(true).catch(e=>toast(e.message,true));
+ if($id('agLogout'))$id('agLogout').onclick=async()=>{await sb.auth.signOut();location.reload();};
  
 }
 
@@ -292,7 +293,13 @@ $id('pkCount').addEventListener('input',()=>{$id('pkTotal').textContent='Total p
 $id('pkSize').addEventListener('change',()=>{$id('pkTotal').textContent='Total preparado: '+fmt(num('pkSize')*num('pkCount'))+' kg';});
 $id('fPackaging').onsubmit=async e=>{e.preventDefault();const lot=data.seedLots.find(x=>x.id===val('pkLote'));if(!lot)return toast('Selecciona un lote.',true);const kg=num('pkSize')*num('pkCount');const already=(data.packaging||[]).filter(x=>x.lote===lot.id).reduce((a,x)=>a+x.kilos,0);if(kg+already>lot.kilos+0.001)return toast('El envasado supera los kilos registrados del lote.',true);const label='ET-'+lot.id+'-'+Date.now().toString().slice(-5);try{await cloudInsert('packaging_jobs',{packaging_date:val('pkFecha'),seed_lot_id:lot.dbId,lot_code:lot.id,product_name:lot.especie,variety:lot.variedad,category:lot.categoria,package_size_kg:num('pkSize'),package_count:num('pkCount'),warehouse_name:val('pkWarehouse'),storage_position:val('pkPosition'),label_code:label,notes:val('pkNotes')});e.target.reset();resetDates(['pkFecha']);$id('pkTotal').textContent='Total preparado: 0 kg';toast('Envasado guardado. Ya puedes imprimir la etiqueta interna.');}catch(err){fail(err);}};
 function fail(err){toast(err?.message||'No se ha podido guardar el registro.',true);}
-async function startApp(){
+async function startApp(user){
+ if(!user)throw new Error('Inicia sesión para continuar.');
+ currentUser=user;
+ const {data:membership,error:memberError}=await sb.from('memberships').select('organization_id,role,active').eq('user_id',user.id).eq('active',true).limit(1).maybeSingle();
+ if(memberError)throw memberError;
+ if(!membership)throw new Error('Tu cuenta todavía no pertenece a ningún almacén. Pide una invitación al administrador.');
+ orgId=membership.organization_id;userRole=membership.role;
  const {data:org,error}=await sb.from('organizations').select('*').eq('id',orgId).single();
  if(error)throw error;orgRow=org;
  await loadCloudData();
@@ -300,7 +307,7 @@ async function startApp(){
  setTopBar();
  if(liveChannel)await sb.removeChannel(liveChannel);
  liveChannel=sb.channel('agrogestion-link-'+orgId);
- ['receipts','contacts','sales','processes','purchases','transports','seed_lots','seed_dispatches','packaging_jobs','invoices','payments','inventory_movements','warehouses','products'].forEach(table=>{liveChannel=liveChannel.on('postgres_changes',{event:'*',schema:'public',table,filter:'organization_id=eq.'+orgId},()=>loadCloudData());});
+ ['receipts','contacts','sales','processes','purchases','transports','seed_lots','seed_dispatches','packaging_jobs','invoices','payments','inventory_movements','warehouses','products','ag_contracts','ag_farmer_advances','ag_settlements','ag_delivery_notes','ag_stock_transfers','ag_quality_rules'].forEach(table=>{liveChannel=liveChannel.on('postgres_changes',{event:'*',schema:'public',table,filter:'organization_id=eq.'+orgId},()=>loadCloudData());});
  liveChannel.subscribe();
  show('trabajo');
 }
@@ -315,7 +322,7 @@ function installForms(){
  $id('fSeedSale').onsubmit=async e=>{e.preventDefault();const lot=data.seedLots.find(x=>x.id===val('ssLote'));if(!lot)return toast('Selecciona un lote de semillas.',true);try{await cloudInsert('seed_dispatches',{dispatch_date:val('ssFecha'),seed_lot_id:lot.dbId,lot_code:lot.id,customer_name:val('ssCliente'),quantity_kg:num('ssKilos'),price_per_kg:num('ssPrecio'),delivery_note:val('ssAlbaran'),format:val('ssFormato'),transport:val('ssTransporte'),notes:val('ssObs')});e.target.reset();resetDates(['ssFecha']);toast('Salida de semillas guardada y stock descontado.');}catch(err){fail(err);}};
  $id('fConfig').onsubmit=async e=>{e.preventDefault();const cityValue=val('cfgLocal').trim();const {error}=await sb.from('organizations').update({name:val('cfgNombre'),cif:val('cfgNif'),email:val('cfgEmail'),phone:val('cfgTel'),address:val('cfgDir'),city:cityValue,invoice_series:val('cfgSerie')||'F',default_vat:num('cfgIva'),campaign:val('cfgCamp')}).eq('id',orgId);if(error)return fail(error);const {data:org,error:er}=await sb.from('organizations').select('*').eq('id',orgId).single();if(er)return fail(er);orgRow=org;data.config={nombre:org.name,nif:org.cif,email:org.email,tel:org.phone,dir:org.address,local:org.city,serie:org.invoice_series,iva:Number(org.default_vat),camp:org.campaign};toast('Configuración sincronizada con la base de datos.');};
  $id('fCobro').onsubmit=async e=>{e.preventDefault();const inv=data.facturas.find(x=>x.numero===val('cFactura'));if(!inv)return toast('Selecciona una factura.',true);const remaining=inv.total-inv.pagado;if(num('cImporte')>remaining+0.001)return toast('El importe supera el saldo pendiente: '+money(remaining),true);try{await cloudInsert('payments',{invoice_id:inv.id,payment_date:val('cFecha'),amount:num('cImporte'),method:val('cForma')});e.target.reset();resetDates(['cFecha']);toast('Cobro guardado y saldo actualizado.');}catch(err){fail(err);}};
- $id('fInvite').onsubmit=async e=>{e.preventDefault();return toast('Esta versión se ha configurado para acceso directo mediante enlace.');try{const {data:invite,error}=await sb.from('org_invites').insert({organization_id:orgId,email:val('invEmail').trim().toLowerCase(),role:val('invRole'),created_by:currentUser.id}).select('token').single();if(error)throw error;const link=location.origin+'/?invite='+invite.token;const out=$id('inviteResult');out.style.display='block';out.textContent='Invitación creada para '+val('invEmail')+'. Enlace: '+link;try{await navigator.clipboard.writeText(link);toast('Invitación creada. Enlace copiado para compartir.');}catch{toast('Invitación creada. Copia el enlace mostrado.');}e.target.reset();}catch(err){fail(err);}};
+ $id('fInvite').onsubmit=async e=>{e.preventDefault();try{const {data:invite,error}=await sb.from('org_invites').insert({organization_id:orgId,email:val('invEmail').trim().toLowerCase(),role:val('invRole'),created_by:currentUser.id}).select('token').single();if(error)throw error;const link=location.origin+'/?invite='+invite.token;const out=$id('inviteResult');out.style.display='block';out.textContent='Invitación creada para '+val('invEmail')+'. Enlace: '+link;try{await navigator.clipboard.writeText(link);toast('Invitación creada. Enlace copiado para compartir.');}catch{toast('Invitación creada. Copia el enlace mostrado.');}e.target.reset();}catch(err){fail(err);}};
  $id('fWarehouse').onsubmit=async e=>{e.preventDefault();try{const {error}=await sb.from('warehouses').insert({organization_id:orgId,name:val('whName').trim(),location:val('whLocation')});if(error)throw error;e.target.reset();await loadCloudData();toast('Almacén añadido.');}catch(err){fail(err);}};
  $id('fProduct').onsubmit=async e=>{e.preventDefault();try{const {error}=await sb.from('products').insert({organization_id:orgId,name:val('prodName').trim(),category:val('prodCategory')});if(error)throw error;e.target.reset();await loadCloudData();toast('Producto añadido.');}catch(err){fail(err);}};
 }
@@ -366,7 +373,8 @@ window.printDelivery=id=>{const x=commercial.delivery.find(a=>a.id===id);if(!x)r
 $id('fTraslado').onsubmit=async e=>{e.preventDefault();const qty=num('trKilos'),from=val('trOrigen'),to=val('trDestino');if(from===to)return toast('El almacén de origen y destino deben ser distintos.',true);try{const {error}=await sb.rpc('transfer_stock',{p_organization_id:orgId,p_transfer_date:val('trFecha'),p_product_name:val('trProducto'),p_lot_code:val('trLote'),p_from_warehouse:from,p_to_warehouse:to,p_quantity_kg:qty,p_notes:val('trNotas')});if(error)throw error;e.target.reset();resetDates(['trFecha']);await loadCloudData();toast('Traslado registrado de forma segura y existencias actualizadas.');}catch(err){fail(err);}};
 $id('fRegla').onsubmit=async e=>{e.preventDefault();const row={product_name:val('qrProducto').trim(),max_moisture_pct:val('qrHum')===''?null:num('qrHum'),max_impurities_pct:val('qrImp')===''?null:num('qrImp'),min_hectoliter_weight:val('qrPeso')===''?null:num('qrPeso'),min_protein_pct:val('qrProt')===''?null:num('qrProt'),notes:val('qrNotas')};try{const {error}=await sb.from('ag_quality_rules').upsert({...row,organization_id:orgId},{onConflict:'organization_id,product_name'});if(error)throw error;await loadCommercial();e.target.reset();toast('Regla de calidad guardada.');}catch(err){fail(err);}};
 async function boot(){
- try{await startApp();}catch(err){document.body.innerHTML='<div style="padding:30px;font-family:system-ui"><h2>No se pudo abrir AgroGestión</h2><p>'+esc(err.message||'Error de conexión')+'</p><button onclick="location.reload()">Reintentar</button></div>';}
+ try{const {data:{session},error}=await sb.auth.getSession();if(error)throw error;if(session?.user){try{await startApp(session.user);}catch(err){await sb.auth.signOut();authScreen(err.message||'No tienes acceso a este almacén.');}}else{authScreen();}}
+ catch(err){authScreen(err.message||'No se pudo conectar. Comprueba tu conexión y vuelve a intentarlo.');}
 }
 ['ctFecha','liFecha','anFecha','alFecha','trFecha'].forEach(id=>{if($id(id))$id(id).value=dateLocal();});
 installForms();
