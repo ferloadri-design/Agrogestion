@@ -115,7 +115,7 @@ td{padding:12px 10px}tbody tr:hover{background:#f8fbf8}
 <section id="config" class="view"><div class="heading"><div><h1>Configuración del almacén</h1><p>Datos de empresa y preferencias documentales</p></div></div><div class="card"><h3>Datos fiscales y comerciales</h3><form id="fConfig"><div class="formgrid"><div class="field"><label>Razón social</label><input id="cfgNombre"></div><div class="field"><label>NIF / CIF</label><input id="cfgNif"></div><div class="field"><label>Correo electrónico</label><input id="cfgEmail" type="email"></div><div class="field"><label>Teléfono</label><input id="cfgTel"></div><div class="field"><label>Dirección fiscal</label><input id="cfgDir"></div><div class="field"><label>Localidad y código postal</label><input id="cfgLocal"></div><div class="field"><label>Serie de facturación</label><input id="cfgSerie" value="F"></div><div class="field"><label>Tipo de IVA predeterminado (%)</label><input id="cfgIva" type="number" value="21" min="0" max="100"></div><div class="field"><label>Campaña</label><input id="cfgCamp" placeholder="2026/2027"></div></div><div class="actions"><button class="btn">Guardar configuración</button></div></form><div class="notice">Antes de emitir facturas reales hay que validar régimen fiscal, series, impuestos, datos obligatorios y adaptación del sistema a la normativa SIF/VERI*FACTU. En sociedades contribuyentes del Impuesto sobre Sociedades, la fecha límite general indicada por la AEAT es el 1 de enero de 2027; para el resto de obligados tributarios, el 1 de julio de 2027. <a href="https://sede.agenciatributaria.gob.es/Sede/iva/sistemas-informaticos-facturacion-verifactu.html" target="_blank">Consultar AEAT</a>.</div></div>
 <div class="card" style="margin-top:14px"><h3>Usuarios y permisos del almacén</h3><p class="muted">Invita a tus trabajadores por correo. El enlace se puede copiar y enviar por WhatsApp.</p>
 <form id="fInvite"><div class="formgrid"><div class="field"><label>Correo del trabajador</label><input id="invEmail" type="email" required placeholder="trabajador@empresa.es"></div><div class="field"><label>Permiso</label><select id="invRole"><option value="worker">Trabajador</option><option value="manager">Encargado</option></select></div></div><div class="actions"><button class="btn">＋ Crear invitación</button></div></form><div id="inviteResult" class="notice" style="display:none"></div></div>
-<div class="card" style="margin-top:14px"><h3>Almacenes y productos</h3><div class="two"><form id="fWarehouse"><div class="field"><label>Nuevo almacén / nave</label><input id="whName" required placeholder="Nave principal"></div><div class="field" style="margin-top:8px"><label>Ubicación</label><input id="whLocation" placeholder="Dirección o referencia"></div><div class="actions"><button class="btn light">Añadir almacén</button></div></form><form id="fProduct"><div class="field"><label>Nuevo producto</label><input id="prodName" required placeholder="Maíz, colza…"></div><div class="field" style="margin-top:8px"><label>Familia / categoría</label><input id="prodCategory" placeholder="Cereal, oleaginosa…"></div><div class="actions"><button class="btn light">Añadir producto</button></div></form></div><p id="catalogSummary" class="muted"></p></div></section>
+<div class="card" style="margin-top:14px"><h3>Almacenes y productos</h3><div class="two"><form id="fWarehouse"><div class="field"><label>Nuevo almacén / nave</label><input id="whName" required placeholder="Nave principal"></div><div class="field" style="margin-top:8px"><label>Ubicación</label><input id="whLocation" placeholder="Dirección o referencia"></div><div class="actions"><button class="btn light">Añadir almacén</button></div></form><form id="fProduct"><div class="field"><label>Nuevo producto</label><input id="prodName" required placeholder="Maíz, colza…"></div><div class="field" style="margin-top:8px"><label>Familia / categoría</label><input id="prodCategory" placeholder="Cereal, oleaginosa…"></div><div class="actions"><button class="btn light">Añadir producto</button></div></form></div><p id="catalogSummary" class="muted"></p><div class="actions"><button type="button" class="btn light" onclick="downloadBackup()">Descargar copia completa</button></div></div></section>
 </div></main></div>
 <script>
 const $=id=>document.getElementById(id),read=k=>JSON.parse(localStorage.getItem('ag_'+k)||'[]'),write=(k,v)=>localStorage.setItem('ag_'+k,JSON.stringify(v));let data={entradas:read('entradas'),contactos:read('contactos'),procesos:read('procesos'),compras:read('compras'),ventas:read('ventas'),transportes:read('transportes'),seedLots:read('seedLots'),seedSales:read('seedSales'),facturas:read('facturas'),cobros:read('cobros'),config:JSON.parse(localStorage.getItem('ag_config')||'{}')};let facturaActual=null;const hoy=new Date().toISOString().slice(0,10);['eFecha','pFecha','coFecha','vFecha','tFecha','cFecha','slFecha','ssFecha'].forEach(id=>$(id).value=hoy);
@@ -216,6 +216,7 @@ async function loadCloudData(showMsg=false){
  render();
  const notice=document.querySelector('#stock .notice');if(notice)notice.textContent='Existencias calculadas desde el libro de movimientos: entradas, procesos, ventas y salidas de semillas. Los movimientos no se editan manualmente.';
  const summary=$id('catalogSummary');if(summary)summary.textContent='Almacenes: '+warehouses.length+' · Productos configurados: '+products.length;
+ updateCatalogOptions();
  if(showMsg)toast('Datos sincronizados con el almacén.');
 }
 async function cloudInsert(table,row){
@@ -231,6 +232,18 @@ function setTopBar(){
  if(u)u.innerHTML='<div class="avatar">'+(currentUser.email||'AG').slice(0,2).toUpperCase()+'</div><span>'+((data.profileName||currentUser.email)||'Usuario')+'<br><span class="muted role">'+(userRole==='admin'?'Administrador':userRole==='manager'?'Encargado':'Trabajador')+'</span></span><button class="agro-smallbtn" id="agRefresh">↻</button><button class="agro-smallbtn" id="agLogout">Salir</button>';
  if($id('agRefresh'))$id('agRefresh').onclick=()=>loadCloudData(true).catch(e=>toast(e.message,true));
  if($id('agLogout'))$id('agLogout').onclick=async()=>{if(liveChannel)await sb.removeChannel(liveChannel);await sb.auth.signOut();location.reload();};
+}
+
+function updateCatalogOptions(){
+ const values=(data.products||[]).filter(p=>p.active).map(p=>p.name);
+ ['eProducto','coProducto','vProducto','filtroProducto'].forEach(id=>{
+  const sel=$id(id);if(!sel)return;
+  values.forEach(name=>{if(![...sel.options].some(o=>o.value===name||o.textContent===name)){const op=document.createElement('option');op.value=name;op.textContent=name;sel.appendChild(op);}});
+ });
+}
+function downloadBackup(){
+ const payload={created_at:new Date().toISOString(),organization:orgRow,receipts:data.entradas,contacts:data.contactos,processes:data.procesos,purchases:data.compras,sales:data.ventas,transports:data.transportes,seed_lots:data.seedLots,seed_dispatches:data.seedSales,invoices:data.facturas,payments:data.cobros,inventory_movements:data.stockLedger,warehouses:data.warehouses,products:data.products};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='AgroGestion-copia-'+dateLocal()+'.json';a.click();URL.revokeObjectURL(a.href);toast('Copia descargada en este dispositivo.');
 }
 function renderLedger(){
  if(!$id('stockRows'))return;
@@ -261,7 +274,7 @@ async function startApp(user){
  const overlay=$id('agroAuth');if(overlay)overlay.remove();
  setTopBar();
  if(liveChannel)await sb.removeChannel(liveChannel);
- liveChannel=sb.channel('agrogestion-'+orgId).on('postgres_changes',{event:'*',schema:'public',table:'receipts',filter:'organization_id=eq.'+orgId},()=>loadCloudData()).on('postgres_changes',{event:'*',schema:'public',table:'contacts',filter:'organization_id=eq.'+orgId},()=>loadCloudData()).on('postgres_changes',{event:'*',schema:'public',table:'sales',filter:'organization_id=eq.'+orgId},()=>loadCloudData()).on('postgres_changes',{event:'*',schema:'public',table:'processes',filter:'organization_id=eq.'+orgId},()=>loadCloudData()).on('postgres_changes',{event:'*',schema:'public',table:'inventory_movements',filter:'organization_id=eq.'+orgId},()=>loadCloudData()).subscribe();
+ liveChannel=sb.channel('agrogestion-'+orgId);['receipts','contacts','sales','processes','purchases','transports','seed_lots','seed_dispatches','invoices','payments','inventory_movements','warehouses','products'].forEach(table=>{liveChannel=liveChannel.on('postgres_changes',{event:'*',schema:'public',table,filter:'organization_id=eq.'+orgId},()=>loadCloudData());});liveChannel.subscribe();
  show('inicio');
 }
 function installForms(){
